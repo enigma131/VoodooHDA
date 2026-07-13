@@ -16,6 +16,18 @@ int snprintf_vhda(char *text, size_t maxlen, const char *fmt, ...);
 #define strlcpy strncpy
 #define strlcat strncat
 
+#define kIOAudioDeviceTransportTypeHdmi 'hdmi'
+#define kIOAudioChannelLabel_Left 1
+#define kIOAudioChannelLabel_Right 2
+#define kIOAudioChannelLabel_Center 3
+#define kIOAudioChannelLabel_LFEScreen 4
+#define kIOAudioChannelLabel_LeftSurround 5
+#define kIOAudioChannelLabel_RightSurround 6
+#define kIOAudioChannelLabel_RearSurroundLeft 33
+#define kIOAudioChannelLabel_RearSurroundRight 34
+#define kIOAudioEngineInputChannelLayoutKey "IOAudioEngineInputChannelLayout"
+#define kIOAudioEngineOutputChannelLayoutKey "IOAudioEngineOutputChannelLayout"
+
 enum {
     kIOUCVariableStructureSize = 0xffffffff
 };

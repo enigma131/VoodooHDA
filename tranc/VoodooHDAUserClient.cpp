@@ -33,13 +33,14 @@ void VoodooHDAUserClient::messageHandler(UInt32 type, const char *format, ...)
 	if (mDevice)
 		mDevice->messageHandler(type, format, args);
 	else if (mVerbose >= 1)
-		vprintf(format, args);
+	    IOLog("%s", format);	
+		// vprintf(format, args);
 	va_end(args);
 }
 
 bool VoodooHDAUserClient::start(IOService *provider)
 {
-//	logMsg("VoodooHDAUserClient[%p]::start\n", this);
+	logMsg("VoodooHDAUserClient[%p]::start\n", this);
 
 	if (!super::start(provider))
 		return false;
@@ -54,7 +55,7 @@ bool VoodooHDAUserClient::start(IOService *provider)
 
 bool VoodooHDAUserClient::didTerminate(IOService *provider, IOOptionBits options, bool *defer)
 {
-//	logMsg("VoodooHDAUserClient[%p]::didTerminate\n", this);
+	logMsg("VoodooHDAUserClient[%p]::didTerminate\n", this);
 
 	// if defer is true, stop will not be called on the user client
 	*defer = false;
@@ -65,7 +66,7 @@ bool VoodooHDAUserClient::didTerminate(IOService *provider, IOOptionBits options
 // clientClose is called when the user process calls IOServiceClose
 IOReturn VoodooHDAUserClient::clientClose()
 {
-//    logMsg("VoodooHDAUserClient[%p]::clientClose\n", this);
+    logMsg("VoodooHDAUserClient[%p]::clientClose\n", this);
 
 	if (!isInactive())
 		terminate();
@@ -77,7 +78,7 @@ IOReturn VoodooHDAUserClient::clientClose()
 // available to be called 
 IOExternalMethod *VoodooHDAUserClient::getTargetAndMethodForIndex(IOService **targetP, UInt32 index)
 {
-	//logMsg("VoodooHDAUserClient[%p]::getTargetAndMethodForIndex(%ld)\n", this, index);
+	logMsg("VoodooHDAUserClient[%p]::getTargetAndMethodForIndex(%ld)\n", this, index);
 
 	static const IOExternalMethod methodDescs[kVoodooHDANumMethods] = {
 		{ NULL, (IOMethod) &VoodooHDAUserClient::actionMethod, kIOUCStructIStructO,
@@ -100,7 +101,7 @@ IOReturn VoodooHDAUserClient::actionMethod(UInt32 *dataIn, UInt32 *dataOut, IOBy
 	void *data;
 	UInt64 outputMax;
 
-	//logMsg("VoodooHDAUserClient[%p]::actionMethod(%ld, %ld)\n", this, inputSize, *outputSize);
+	logMsg("VoodooHDAUserClient[%p]::actionMethod(%ld, %ld)\n", this, inputSize, *outputSize);
 
 	if (inputSize != sizeof (UInt32))
 		return kIOReturnBadArgument;
@@ -128,7 +129,7 @@ IOReturn VoodooHDAUserClient::clientMemoryForType(UInt32 type, IOOptionBits *opt
 	IOReturn result;
 	IOBufferMemoryDescriptor *memDesc;
 
-//	logMsg("VoodooHDAUserClient[%p]::clientMemoryForType(0x%lx)\n", this, type);
+	logMsg("VoodooHDAUserClient[%p]::clientMemoryForType(0x%lx)\n", this, type);
 
 	// note: IOConnectUnmapMemory should not be used with this user client
 

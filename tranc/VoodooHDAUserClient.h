@@ -3,6 +3,10 @@
 #ifndef _VOODOO_HDA_USER_CLIENT_H
 #define _VOODOO_HDA_USER_CLIENT_H
 
+#ifndef override
+#define override
+#endif
+
 #include <IOKit/IOLib.h>
 #include <IOKit/IOUserClient.h>
 

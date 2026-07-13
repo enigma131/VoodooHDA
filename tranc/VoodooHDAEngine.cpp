@@ -49,7 +49,8 @@ void VoodooHDAEngine::messageHandler(UInt32 type, const char *format, ...)
 	if (mDevice)
 		mDevice->messageHandler(type, format, args);
 	else if (mVerbose >= 1)
-		vprintf(format, args);
+	    IOLog("%s", format);	
+		// vprintf(format, args);
 	va_end(args);
 }
 
@@ -62,7 +63,7 @@ bool VoodooHDAEngine::initWithChannel(Channel *channel)
 {
 	bool result = false;
 
-//	logMsg("VoodooHDAEngine[%p]::init\n", this);
+	logMsg("VoodooHDAEngine[%p]::init\n", this);
 
 	if (!channel || !super::init(NULL))
 		goto done;
@@ -76,7 +77,7 @@ done:
 
 void VoodooHDAEngine::free()
 {
-//	logMsg("VoodooHDAEngine[%p]::free\n", this);
+	logMsg("VoodooHDAEngine[%p]::free\n", this);
 
 	RELEASE(mStream);
 
@@ -394,7 +395,7 @@ bool VoodooHDAEngine::createAudioStream()
 
 	ASSERT(!mStream);
 
-//	logMsg("VoodooHDAEngine[%p]::createAudioStream\n", this);
+	logMsg("VoodooHDAEngine[%p]::createAudioStream\n", this);
 
 //	logMsg("recDevMask: 0x%lx, devMask: 0x%lx\n", mChannel->pcmDevice->recDevMask,
 //			mChannel->pcmDevice->devMask);
@@ -474,8 +475,8 @@ bool VoodooHDAEngine::createAudioStream(IOAudioStreamDirection direction, void *
     
 	ASSERT(!mStream);
 
-//	logMsg("VoodooHDAEngine[%p]::createAudioStream(%d, %p, %ld)\n", this, direction, sampleBuffer,
-//			sampleBufferSize);
+	logMsg("VoodooHDAEngine[%p]::createAudioStream(%d, %p, %u)\n", this, direction, sampleBuffer,
+			(unsigned)sampleBufferSize);
 
 	mStream = new IOAudioStream;
 	if (!mStream->initWithAudioEngine(this, direction, 1)) {
@@ -697,7 +698,7 @@ IOReturn VoodooHDAEngine::performAudioEngineStart()
 {
 //	logMsg("VoodooHDAEngine[%p]::performAudioEngineStart\n", this);
 
-//	logMsg("calling channelStart() for channel %d\n", getEngineId());
+	logMsg("calling channelStart() for channel %d\n", getEngineId());
 	takeTimeStamp(false);
 	mDevice->channelStart(mChannel);
 
@@ -708,7 +709,7 @@ IOReturn VoodooHDAEngine::performAudioEngineStop()
 {
 //	logMsg("VoodooHDAEngine[%p]::performAudioEngineStop\n", this);
 
-//	logMsg("calling channelStop() for channel %d\n", getEngineId());
+	logMsg("calling channelStop() for channel %d\n", getEngineId());
 	mDevice->channelStop(mChannel);
 
 	return kIOReturnSuccess;
@@ -810,8 +811,8 @@ IOReturn VoodooHDAEngine::performFormatChange(IOAudioStream *audioStream,
 
 	if (newSampleRate) {
 		setResult = mDevice->channelSetSpeed(mChannel, newSampleRate->whole);
-//		logMsg("channelSetSpeed(%ld) for channel %d returned %d\n", newSampleRate->whole, getEngineId(),
-//				setResult);
+		logMsg("channelSetSpeed(%ld) for channel %d returned %d\n", newSampleRate->whole, getEngineId(),
+				setResult);
 		if ((UInt32) setResult != newSampleRate->whole) {
 			errorMsg("error: couldn't set sample rate %ld\n", (long int)newSampleRate->whole);
 			goto done;
@@ -871,10 +872,12 @@ bool VoodooHDAEngine::createAudioControls()
 	minMaxDb = getMinMaxDb(initOssMask);
 	minDb = (IOFixed) (minMaxDb >> 32);
 	maxDb = (IOFixed) (minMaxDb & ~0UL);
-//	logMsg("minDb: %d (%08lx), maxDb: %d (%08lx)\n", (SInt16) (minDb >> 16), minDb,
-//		   (SInt16) (maxDb >> 16), maxDb);
+
+	logMsg("minDb: %d (%08x), maxDb: %d (%08x)\n", (SInt16) (minDb >> 16), minDb,
+		   (SInt16) (maxDb >> 16), maxDb);
+    
 	if ((minDb == ~0L) || (maxDb == ~0L)) {
-		//logMsg("warning: found invalid min/max dB (using default -22.5 -> 0.0dB range)\n"); //-22.5 -> 0.0
+		logMsg("warning: found invalid min/max dB (using default -22.5 -> 0.0dB range)\n"); //-22.5 -> 0.0
 		minDb = static_cast<int>(static_cast<unsigned>(-22) << 16) + (65536 / 2);
 		maxDb = 0 << 16;
 	}

@@ -328,7 +328,7 @@ void VoodooHDADevice::applyAppleALCExtraVerbs(FunctionGroup *funcGroup)
 
 	nid_t cad = funcGroup->codec->cad;
 	dumpMsg("AppleALC: applying %u extra verbs for codec=0x%08lx layout=%u\n",
-			entry->extraVerbCount, (long unsigned int)codecId, mLayoutId);
+			entry->extraVerbCount, (long unsigned int)codecId, (unsigned int)mLayoutId);
 
 	for (UInt16 i = 0; i < entry->extraVerbCount; i++) {
 		UInt32 verb = gALCExtraVerbs[entry->extraVerbStart + i];
@@ -366,7 +366,7 @@ void VoodooHDADevice::applyAppleALCWakeVerbs(FunctionGroup *funcGroup)
 	}
 
 	dumpMsg("AppleALC: applying %u wake verbs for codec=0x%08lx layout=%u\n",
-			verbCount, (long unsigned int)codecId, mLayoutId);
+			verbCount, (long unsigned int)codecId, (unsigned int)mLayoutId);
 
 	for (UInt16 i = 0; i < verbCount; i++) {
 		UInt32 verb = verbs[verbStart + i];

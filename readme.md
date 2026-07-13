@@ -1,5 +1,28 @@
-VoodooHDA
-========
+VoodooHDA 32 bits
+=================
+
+I had no audio from Tiger to Lion on the Acer laptop hackintosh, so the idea for this project comes.  
+First commit is without prefpane because, as you know, this can't be made with Xcode 2.5 tools.  
+
+Start point : Forked from https://github.com/CloverHackyColor/VoodooHDA project release 3.1.2  
+Thanks to developpers (slice, chris1111 and original developers)   
+Some parts of code adapation comes from svn archives, example to get release 77  
+svn checkout -r 77 https://svn.code.sf.net/p/voodoohda/code/ voodoohda-code-r77  
+
+### Commit 1 :  
+Xcode 2.5 compatibility, targets Tiger + Leopard 32 bits, compiled kext embedded in build folder  
+Reworked kernel/darwin 8 adaptations and log system for compatibility.  
+Be careful: Compilation with TIGER flag, see in project settings.    
+VoodooHDA.xcodeproj is located in tranc folder like original project.  
+If you need a FAT version, you can combine Tiger 32 bits compilation and Snow Leopard 64 bit compilation (Xcode 4.6 is need) with lipo  
+
+Using with Opencore:  
+Kernel->block : com.apple.driver.AppleHDA  
+Kernel->force : com.apple.iokit.IOAudioFamily, /System/Library/Extensions/IOAudioFamily.kext, max kernel 9.9  
+Kernel->force : com.apple.kext.OSvKernDSPLib , /System/Library/Extensions/OSvKernDSPLib.kext, max kernel 9.9  
+Kernel->add   : your compiled VoodooHDA.kext (32 bits or FAT version)  
+
+Original readme.md :  
 
 ### Compilation.
 If you are using systems up to Catalina then open project 

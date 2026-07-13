@@ -47,20 +47,23 @@ OSDefineMetaClassAndStructors(VoodooHDADevice, IOAudioDevice)
 #define kVoodooHDAAllowMSI "AllowMSI"
 #define kDisableInputMonitor "DisableInputMonitor"
 
+static bool gVersionPrinted = false;
+
 bool VoodooHDADevice::init(OSDictionary *dict)
 {
 	OSNumber *verboseLevelNum;
 	OSBoolean *osBool;
 	extern kmod_info_t kmod_info;
 	mVerbose = 0;
-	IOLog("VoodooHDA DBG: init() called, dict=%p\n", dict);
+	if (!gVersionPrinted) {
+		gVersionPrinted = true;  // one time only
+		IOLog("Loading VoodooHDA %s (based on hdac version " HDAC_REVISION ")\n", kmod_info.version);
+	}
+	logMsg("VoodooHDA: init() called, dict=%p\n", dict);
 	if (!super::init(dict)) {
-		IOLog("VoodooHDA DBG: super::init() FAILED\n");
+		IOLog("VoodooHDA: super::init() FAILED\n");
 		return false;
 	}
-	IOLog("VoodooHDA DBG: super::init() OK, version=%s\n", kmod_info.version);
-
-	dumpMsg("Loading VoodooHDA %s (based on hdac version " HDAC_REVISION ")\n", kmod_info.version);
 	
 //	ASSERT(dict);
 	verboseLevelNum = OSDynamicCast(OSNumber, dict->getObject(kVoodooHDAVerboseLevelKey));
@@ -152,8 +155,7 @@ bool VoodooHDADevice::init(OSDictionary *dict)
 
 	mActionHandler = (IOCommandGate::Action) &VoodooHDADevice::handleAction;
 	if (!mActionHandler) {
-		IOLog("VoodooHDA DBG: mActionHandler is NULL\n");
-		errorMsg("error: couldn't cast command gate action handler\n");
+		errorMsg("error: mActionHandler is NULL\n");
 		return false;
 	}
 
@@ -161,7 +163,7 @@ bool VoodooHDADevice::init(OSDictionary *dict)
 	mPrefPanelMemoryBufSize = 0;
 	mPrefPanelMemoryBuf = 0;
 
-	IOLog("VoodooHDA DBG: init() returning true\n");
+	logMsg("VoodooHDA DBG: init() returning true\n");
 	return true;
 }
 
@@ -219,14 +221,14 @@ IOService *VoodooHDADevice::probe(IOService *provider, SInt32 *score)
 //	bool contIsGeneric = false;
 	int n;
 
-	IOLog("VoodooHDA DBG: probe() called, provider=%p score=%d\n", provider, score ? *score : -1);
+	logMsg("VoodooHDA DBG: probe() called, provider=%p score=%d\n", provider, (int)(score ? *score : -1));
 
 	result = super::probe(provider, score);
 	if (result != static_cast<IOService*>(this)) {
-		IOLog("VoodooHDA DBG: super::probe() FAILED, result=%p this=%p\n", result, this);
+		logMsg("VoodooHDA DBG: super::probe() FAILED, result=%p this=%p\n", result, this);
 		return result;
 	}
-	IOLog("VoodooHDA DBG: super::probe() OK\n");
+	logMsg("VoodooHDA DBG: super::probe() OK\n");
 	
 	initMixerDefaultValues();
 	
@@ -355,18 +357,16 @@ IOService *VoodooHDADevice::probe(IOService *provider, SInt32 *score)
 #endif//	
 	mPciNub = OSDynamicCast(IOPCIDevice, provider);
 	if (!mPciNub) {
-		IOLog("VoodooHDA DBG: cast to IOPCIDevice FAILED\n");
 		errorMsg("error: couldn't cast provider to IOPCIDevice\n");
 		return NULL;
 	}
-	IOLog("VoodooHDA DBG: mPciNub=%p, opening...\n", mPciNub);
+	logMsg("VoodooHDA DBG: mPciNub=%p, opening...\n", mPciNub);
 	if (!mPciNub->open(this)) {
-		IOLog("VoodooHDA DBG: mPciNub->open() FAILED\n");
 		errorMsg("error: couldn't open PCI device\n");
 		mPciNub = NULL;
 		return NULL;
 	}
-	IOLog("VoodooHDA DBG: PCI device opened OK\n");
+	logMsg("VoodooHDA DBG: PCI device opened OK\n");
 /*
 	classCode = mPciNub->configRead32(kIOPCIConfigClassCode & 0xfc) >> 8;
 	subClass = (classCode >> 8) & 0xff;
@@ -391,8 +391,7 @@ IOService *VoodooHDADevice::probe(IOService *provider, SInt32 *score)
 	if (!mControllerName)
 		mControllerName = "Generic";
 
-	IOLog("VoodooHDA DBG: Controller: %s (vendor=%04x device=%04x)\n", mControllerName, vendorId, deviceId);
-	errorMsg("Controller: %s (vendor ID: %04x, device ID: %04x)\n", mControllerName, vendorId, deviceId);
+		IOLog("Audio Controller: %s (vendor ID: %04x, device ID: %04x)\n", mControllerName, vendorId, deviceId);
 
 	subVendorId = mPciNub->configRead16(kIOPCIConfigSubSystemVendorID);
 	subDeviceId = mPciNub->configRead16(kIOPCIConfigSubSystemID);
@@ -406,27 +405,27 @@ IOService *VoodooHDADevice::probe(IOService *provider, SInt32 *score)
 	OSData *layoutData = OSDynamicCast(OSData, mPciNub->getProperty("voodoo-layout-id"));
 	if (layoutData && layoutData->getLength() >= sizeof(UInt32))
 		mLayoutId = *(const UInt32 *)layoutData->getBytesNoCopy();
-	IOLog("VoodooHDA DBG: voodoo-layout-id -> mLayoutId=%u\n", (unsigned)mLayoutId);
+	logMsg("VoodooHDA DBG: voodoo-layout-id -> mLayoutId=%u\n", (unsigned)mLayoutId);
 	if (mLayoutId == 0) {
 		layoutData = OSDynamicCast(OSData, mPciNub->getProperty("layout-id"));
 		if (layoutData && layoutData->getLength() >= sizeof(UInt32))
 			mLayoutId = *(const UInt32 *)layoutData->getBytesNoCopy();
-		IOLog("VoodooHDA DBG: layout-id -> mLayoutId=%u\n", (unsigned)mLayoutId);
+		logMsg("VoodooHDA DBG: layout-id -> mLayoutId=%u\n", (unsigned)mLayoutId);
 	}
 	if (mLayoutId == 0) {
 		OSNumber *layoutNum = OSDynamicCast(OSNumber, getProperty("LayoutId"));
 		if (layoutNum)
 			mLayoutId = layoutNum->unsigned32BitValue();
-		IOLog("VoodooHDA DBG: LayoutId plist -> mLayoutId=%u\n", (unsigned)mLayoutId);
+		logMsg("VoodooHDA DBG: LayoutId plist -> mLayoutId=%u\n", (unsigned)mLayoutId);
 	}
-	IOLog("VoodooHDA DBG: final mLayoutId=%u\n", (unsigned)mLayoutId);
-	if (mLayoutId)
-		errorMsg("AppleALC: layout-id=%u\n", (unsigned int)mLayoutId);
+	logMsg("VoodooHDA DBG: final mLayoutId=%u\n", (unsigned)mLayoutId);
+//	if (mLayoutId)
+//		errorMsg("AppleALC: layout-id=%u\n", (unsigned int)mLayoutId);
 
 //done:
 	mPciNub->close(this);
 
-	IOLog("VoodooHDA DBG: probe() returning result=%p\n", result);
+	logMsg("VoodooHDA DBG: probe() returning result=%p\n", result);
 	return result;
 }
 
@@ -467,7 +466,7 @@ bool VoodooHDADevice::initHardware(IOService *provider)
 	UInt32 gCtl;
 	UInt16 msiCtl;
 
-	IOLog("VoodooHDA DBG: initHardware() called\n");
+//	logMsg("VoodooHDA DBG: initHardware() called\n");
 
 //moved here from init ----------
   mMsgBufferEnabled = false;
@@ -492,7 +491,7 @@ bool VoodooHDADevice::initHardware(IOService *provider)
 	}
 //--------------  
   
-	//logMsg("VoodooHDADevice[%p]::initHardware\n", this);
+	logMsg("VoodooHDADevice[%p]::initHardware\n", this);
 
 	oldConfig = UINT16_MAX;
 	if (!mPciNub || !super::initHardware(provider))
@@ -584,14 +583,14 @@ bool VoodooHDADevice::initHardware(IOService *provider)
 
 	LOCK();
 
-//	logMsg("Starting CORB Engine...\n");
+	logMsg("Starting CORB Engine...\n");
 	startCorb();
-// logMsg("Starting RIRB Engine...\n");
+    logMsg("Starting RIRB Engine...\n");
 	startRirb();
 
 	logMsg("Enabling controller interrupt...\n");
 	gCtl = readData32(HDAC_GCTL);
-	logMsg("HDAC_CTL=0x%04x\n", gCtl);
+	logMsg("HDAC_CTL=0x%04x\n", (unsigned)gCtl);
 	writeData32(HDAC_GCTL, gCtl | HDAC_GCTL_UNSOL);
 	writeData32(HDAC_INTCTL, HDAC_INTCTL_CIE | HDAC_INTCTL_GIE);
 	IODelay(1000);
@@ -601,7 +600,7 @@ bool VoodooHDADevice::initHardware(IOService *provider)
 	mQuirksOff = 0;
 
 	enableMsgBuffer(true);
-//	logMsg("Scanning HDA codecs...\n");
+	logMsg("Scanning HDA codecs...\n");
 	scanCodecs();
 	enableMsgBuffer(false);
 	UNLOCK();
@@ -609,7 +608,7 @@ bool VoodooHDADevice::initHardware(IOService *provider)
 		Codec *codec = mCodecs[n];
 		if (!codec)
 			continue;
-		dumpMsg("Codec #%d: %s (vendor ID: %04x, device ID: %04x)\n", codec->cad, findCodecName(codec),
+		IOLog("Codec #%d: %s (vendor ID: %04x, device ID: %04x)\n", codec->cad, findCodecName(codec),
 				codec->vendorId, codec->deviceId);
 	}
 
@@ -697,7 +696,6 @@ void VoodooHDADevice::stop(IOService *provider)
 
 void VoodooHDADevice::free()
 {
-	IOLog("VoodooHDA DBG: free() called\n");
 	logMsg("VoodooHDADevice[%p]::free\n", this);
 
 	// if probe or initHardware (called by super start) fails, we end up here - stop is not called
@@ -763,7 +761,7 @@ bool VoodooHDADevice::createAudioEngine(Channel *channel)
 	VoodooHDAEngine *audioEngine = NULL;
 	bool result = false;
 
-	//logMsg("VoodooHDADevice[%p]::createAudioEngine\n", this);
+	logMsg("VoodooHDADevice[%p]::createAudioEngine\n", this);
 
 	audioEngine = new VoodooHDAEngine;
   if (!audioEngine) return false;
@@ -798,7 +796,7 @@ IOReturn VoodooHDADevice::performPowerStateChange(IOAudioDevicePowerState oldPow
 {
 	IOReturn result = kIOReturnSuccess;
 
-	//logMsg("VoodooHDADevice[%p]::performPowerStateChange(%d, %d)\n", this, oldPowerState, newPowerState);
+	logMsg("VoodooHDADevice[%p]::performPowerStateChange(%d, %d)\n", this, oldPowerState, newPowerState);
 
 	if (oldPowerState == kIOAudioDeviceSleep) {
 		if (!resume()) {
@@ -820,7 +818,7 @@ IOReturn VoodooHDADevice::performPowerStateChange(IOAudioDevicePowerState oldPow
  */
 bool VoodooHDADevice::suspend()
 {
-		//logMsg("VoodooHDADevice[%p]::suspend\n", this);
+		logMsg("VoodooHDADevice[%p]::suspend\n", this);
 
 	LOCK();
 		//Slice - trace PCI
@@ -850,7 +848,7 @@ bool VoodooHDADevice::suspend()
 		}
 	}
 
-//	logMsg("Resetting controller...\n");
+	logMsg("Resetting controller...\n");
 	if (!resetController(false)) {
 		errorMsg("error: resetController failed\n");
 		return false;
@@ -900,12 +898,12 @@ bool VoodooHDADevice::resume()
 //	setupWorkloop();
 //	enableEventSources();
 
-//	logMsg("Starting CORB Engine...\n");
+	logMsg("Starting CORB Engine...\n");
 	startCorb();
-//	logMsg("Starting RIRB Engine...\n");
+	logMsg("Starting RIRB Engine...\n");
 	startRirb();
 
-//	logMsg("Enabling controller interrupt...\n");
+	logMsg("Enabling controller interrupt...\n");
 	writeData32(HDAC_GCTL, readData32(HDAC_GCTL) | HDAC_GCTL_UNSOL);
 	writeData32(HDAC_INTCTL, HDAC_INTCTL_CIE | HDAC_INTCTL_GIE);
 	IODelay(1000);
@@ -924,15 +922,15 @@ bool VoodooHDADevice::resume()
 				continue;
 			}
 
-//			logMsg("Power up audio FG cad=%d nid=%d...\n", funcGroup->codec->cad, funcGroup->nid);
+			logMsg("Power up audio FG cad=%d nid=%d...\n", funcGroup->codec->cad, funcGroup->nid);
 			powerup(funcGroup);
 			applyAppleALCWakeVerbs(funcGroup);
-//			logMsg("AFG commit...\n");
+			logMsg("AFG commit...\n");
 			audioCommit(funcGroup);
-//			logMsg("HP switch init...\n");
+			logMsg("HP switch init...\n");
 			UNLOCK(); // xxx
 			for (int i = 0; i < funcGroup->audio.numPcmDevices; i++) {
-//				logMsg("OSS mixer reinitialization...\n");
+				logMsg("OSS mixer reinitialization...\n");
 				mixerResume(&funcGroup->audio.pcmDevices[i]);
 			}
 
@@ -956,7 +954,7 @@ bool VoodooHDADevice::resume()
 
 	UNLOCK();
 
-//	logMsg("Resume done.\n");
+	logMsg("Resume done.\n");
 
 	return true;
 }
@@ -972,7 +970,7 @@ bool VoodooHDADevice::resetController(bool wakeup)
 {
 	UInt32 gctl;
 
-	//logMsg("VoodooHDADevice[%p]::resetController(%d)\n", this, wakeup);
+	logMsg("VoodooHDADevice[%p]::resetController(%d)\n", this, wakeup);
 
 	/* Make sure WAKEEN bits are off */
 	writeData16(HDAC_WAKEEN, 0U);
@@ -1048,7 +1046,7 @@ bool VoodooHDADevice::getCapabilities()
 	UInt16 globalCap;
 	UInt8 corbSizeReg, rirbSizeReg;
 
-//	logMsg("VoodooHDADevice[%p]::getCapabilities\n", this);
+	logMsg("VoodooHDADevice[%p]::getCapabilities\n", this);
 
 	globalCap = readData16(HDAC_GCAP);
 	mInStreamsSup = HDAC_GCAP_ISS(globalCap);
@@ -1084,9 +1082,9 @@ bool VoodooHDADevice::getCapabilities()
 		goto done;
 	}
 
-//	logMsg("    CORB size: %d\n", mCorbSize);
-//	logMsg("    RIRB size: %d\n", mRirbSize);
-//	logMsg("      Streams: ISS=%d OSS=%d BSS=%d\n", mInStreamsSup, mOutStreamsSup, mBiStreamsSup);
+	logMsg("    CORB size: %d\n", mCorbSize);
+	logMsg("    RIRB size: %d\n", mRirbSize);
+	logMsg("    Streams: ISS=%d OSS=%d BSS=%d\n", mInStreamsSup, mOutStreamsSup, mBiStreamsSup);
 
 	ASSERT(mCorbSize);
 	ASSERT(mRirbSize);
@@ -1184,6 +1182,9 @@ void VoodooHDADevice::dumpMsg(const char *format, ...)
 	va_end(args);
 }
 
+// vprintf is a userspace function, not to be used in kexts, is freezing in Tiger / Leopard
+
+/*
 void VoodooHDADevice::messageHandler(UInt32 type, const char *format, va_list args)
 {
 	bool lockExists;
@@ -1232,10 +1233,33 @@ void VoodooHDADevice::messageHandler(UInt32 type, const char *format, va_list ar
 	if (lockExists)
 		unlockMsgBuffer();
 }
+*/
+
+void VoodooHDADevice::messageHandler(UInt32 type, const char *format, va_list arg)
+{
+   if(!format) return;
+
+    char buf[512];
+	vsprintf(buf, format, arg);
+	
+	switch (type) {
+	case kVoodooHDAMessageTypeGeneral:
+		if (mVerbose < 1) return;
+		IOLog("%s", buf);
+		break;
+	case kVoodooHDAMessageTypeError:
+		IOLog("%s", buf);
+		break;
+	case kVoodooHDAMessageTypeDump:
+		if (mVerbose >= 2)
+		IOLog("%s", buf);
+		break;
+    }	
+}
 
 IOReturn VoodooHDADevice::runAction(UInt32 *action, UInt32 *outSize, void **outData, void *extraArg)
 {
-	//logMsg("VoodooHDADevice[%p]::runAction(0x%lx, %p, %p, %p)\n", this, *action, outSize, outData, extraArg);
+	logMsg("VoodooHDADevice[%p]::runAction(0x%lx, %p, %p, %p)\n", this, *action, outSize, outData, extraArg);
 
 	ASSERT(outSize);
 	ASSERT(outData);
@@ -1262,7 +1286,7 @@ IOReturn VoodooHDADevice::handleAction(OSObject *owner, void *arg0, void *arg1, 
 	if (!device)
 		return kIOReturnBadArgument;
 
-	//device->logMsg("VoodooHDADevice[%p]::handleAction(0x%lx, %p, %p)\n", owner, action, outSize, outData);
+	device->logMsg("VoodooHDADevice[%p]::handleAction(0x%lx, %p, %p)\n", owner, action, outSize, outData);
 
 	if((action & 0xFF)  == kVoodooHDAActionSetMixer) {
 		 //Команда от PrefPanel
@@ -1397,7 +1421,7 @@ ChannelInfo *VoodooHDADevice::getChannelInfo() {
 
 bool VoodooHDADevice::setupWorkloop()
 {
-	//logMsg("VoodooHDADevice[%p]::setupWorkloop\n", this);
+	logMsg("VoodooHDADevice[%p]::setupWorkloop\n", this);
 
 	mWorkLoop = IOWorkLoop::workLoop(); // create our own workloop (super has workLoop member)
 
@@ -1456,7 +1480,7 @@ int VoodooHDADevice::findInterruptIndex(IOService* target, bool allowMSI)
 
 void VoodooHDADevice::enableEventSources()
 {
-	//logMsg("VoodooHDADevice[%p]::enableEventSources\n", this);
+	logMsg("VoodooHDADevice[%p]::enableEventSources\n", this);
 
 	if (mInterruptSource)
 		mInterruptSource->enable();
@@ -1466,7 +1490,7 @@ void VoodooHDADevice::enableEventSources()
 
 void VoodooHDADevice::disableEventSources()
 {
-	//logMsg("VoodooHDADevice[%p]::disableEventSources\n", this);
+	logMsg("VoodooHDADevice[%p]::disableEventSources\n", this);
 
 	if (mTimerSource)
 		mTimerSource->disable();
@@ -1614,7 +1638,8 @@ void VoodooHDADevice::freeMem(void *addr)
 	ASSERT(addr);
 	kern_os_free(addr);
 }
-
+// getPhysicalSegment : this will fail on Tiger, only 2 args in SDK 10.4u
+/*
 DmaMemory *VoodooHDADevice::allocateDmaMemory(mach_vm_size_t size, const char *description, UInt32 cacheOption)
 {
 	mach_vm_address_t physMask;
@@ -1646,15 +1671,15 @@ DmaMemory *VoodooHDADevice::allocateDmaMemory(mach_vm_size_t size, const char *d
 	}
 	ASSERT(memDesc->getLength() == size);
 
-	/*
-	 * Note: memDesc is kIOMemoryAutoPrepare, but just to conform...
-	 */
+	
+	// Note: memDesc is kIOMemoryAutoPrepare, but just to conform...
+	
 	if (memDesc->prepare() != kIOReturnSuccess) {
 		errorMsg("error: IOMemoryDescriptor::prepare failed\n");
 		goto failed;
 	}
 
-	segAddr = memDesc->getPhysicalSegment(0U, &segLength, 0U);
+	segAddr = memDesc->getPhysicalSegment(0U, &segLength, 0U);  // this will fail on Tiger, only 2 args in SDK 10.4u
 	if (!segAddr) {
 		errorMsg("error: IOBufferMemoryDescriptor::getPhysicalSegment failed\n");
 		memDesc->complete();
@@ -1682,6 +1707,128 @@ failed:
 	DELETE(dmaMemory);
 
 	return NULL;
+}
+*/
+
+// Inspired by Sourceforge SVN archive r79
+
+DmaMemory *VoodooHDADevice::allocateDmaMemory(mach_vm_size_t size, const char *description, UInt32 cacheOption)
+{
+    IOReturn result;
+    IODMACommand::SegmentFunction outSegFunc;
+    UInt8 numAddrBits;
+    mach_vm_address_t physMask;
+    IOBufferMemoryDescriptor *memDesc = NULL;
+    IODMACommand *command = NULL;
+    UInt32 numSegments;
+    UInt64 offset = 0;
+    DmaMemory *dmaMemory = NULL;
+    UInt64 segAddr, segLength;
+    IOMemoryMap *map;
+    IOVirtualAddress virtAddr;
+
+    ASSERT(size);
+    ASSERT(description);
+	
+	logMsg("VoodooHDADevice::allocateDmaMemory(%llu, %s)\n", size, description);
+
+    if (mSupports64Bit) {
+        numAddrBits = 64;
+        outSegFunc = kIODMACommandOutputHost64;
+        physMask = ~((UInt64)HDAC_DMA_ALIGNMENT - 1);
+    } else {
+        numAddrBits = 32;
+        outSegFunc = kIODMACommandOutputHost32;
+        physMask = ~((UInt32)HDAC_DMA_ALIGNMENT - 1);
+    }
+
+    cacheOption &= kIOMapCacheMask;
+    if (!cacheOption)
+        cacheOption = mInhibitCache ? kIOMapInhibitCache : kIOMapDefaultCache;
+
+    memDesc = IOBufferMemoryDescriptor::inTaskWithPhysicalMask(
+        kernel_task,
+//        kIOMemoryPhysicallyContiguous | kIODirectionInOut | cacheOption,  // not for Leopard
+      kIOMemoryPhysicallyContiguous,		
+        size,
+        physMask);
+
+    if (!memDesc) {
+        errorMsg("IOBufferMemoryDescriptor::inTaskWithPhysicalMask failed\n");
+        goto failed;
+    }
+
+    ASSERT(memDesc->getLength() == size);
+
+    result = memDesc->prepare();
+    if (result != kIOReturnSuccess) {
+        errorMsg("IOMemoryDescriptor::prepare failed\n");
+        goto failed;
+    }
+
+    command = IODMACommand::withSpecification(outSegFunc, numAddrBits, size);
+    if (!command) {
+        errorMsg("IODMACommand::withSpecification failed\n");
+        goto failed;
+    }
+
+    result = command->setMemoryDescriptor(memDesc);
+    if (result != kIOReturnSuccess) {
+        errorMsg("IODMACommand::setMemoryDescriptor failed\n");
+        goto failed;
+    }
+
+    numSegments = 1;
+
+    if (numAddrBits == 64) {
+        IODMACommand::Segment64 segment;
+        result = command->gen64IOVMSegments(&offset, &segment, &numSegments);
+        if (result != kIOReturnSuccess)
+            goto failed;
+
+        segAddr = segment.fIOVMAddr;
+        segLength = segment.fLength;
+
+    } else {
+        IODMACommand::Segment32 segment;
+        result = command->gen32IOVMSegments(&offset, &segment, &numSegments);
+        if (result != kIOReturnSuccess)
+            goto failed;
+
+        segAddr = segment.fIOVMAddr;
+        segLength = segment.fLength;
+    }
+
+    ASSERT(numSegments == 1);
+    ASSERT(segLength == size);
+
+    map = memDesc->map();
+    if (!map) {
+        errorMsg("IOBufferMemoryDescriptor::map failed\n");
+        goto failed;
+    }
+
+    virtAddr = map->getVirtualAddress();
+    ASSERT(virtAddr);
+
+    bzero((void *)virtAddr, size);
+
+    dmaMemory = new DmaMemory;
+    dmaMemory->description = description;
+    dmaMemory->md = memDesc;       
+//    dmaMemory->command = command;  
+//    dmaMemory->map = map;
+    dmaMemory->size = size;
+    dmaMemory->physAddr = segAddr;
+    dmaMemory->virtAddr = virtAddr;
+
+    return dmaMemory;
+
+failed:
+    RELEASE(command);
+    RELEASE(memDesc);
+    DELETE(dmaMemory);
+    return NULL;
 }
 
 void VoodooHDADevice::freeDmaMemory(DmaMemory *dmaMemory)
@@ -1795,7 +1942,7 @@ void VoodooHDADevice::initCorb()
 	UInt8 corbSizeReg;
 	UInt64 corbPhysAddr;
 
-//	logMsg("VoodooHDADevice[%p]::initCorb\n", this);
+	logMsg("VoodooHDADevice[%p]::initCorb\n", this);
 
 	/* Setup the CORB size. */
 	switch (mCorbSize) {
@@ -1845,7 +1992,7 @@ void VoodooHDADevice::initRirb()
 	UInt8 rirbSizeReg;
 	UInt64 rirbPhysAddr;
 
-//	logMsg("VoodooHDADevice[%p]::initRirb\n", this);
+	logMsg("VoodooHDADevice[%p]::initRirb\n", this);
 
 	/* Setup the RIRB size. */
 	switch (mRirbSize) {
@@ -2106,7 +2253,7 @@ int VoodooHDADevice::audioCtlOssMixerInit(PcmDevice *pcmDevice)
 	UInt32 mask, recmask, id;
 	int softpcmvol;
 
-//	logMsg("VoodooHDADevice[%p]::audioCtlOssMixerInit(%p)\n", this, pcmDevice);
+	logMsg("VoodooHDADevice[%p]::audioCtlOssMixerInit(%p)\n", this, pcmDevice);
 
 	/* Make sure that in case of soft volume it won't stay muted. */
 	for (int i = 0; i < SOUND_MIXER_NRDEVICES; i++) {
@@ -2232,7 +2379,7 @@ int VoodooHDADevice::audioCtlOssMixerSet(PcmDevice *pcmDevice, UInt32 dev, UInt3
 	
 	LOCK();
 	
-	//logMsg("VoodooHDADevice[%p]::audioCtlOssMixerSet(%p, %ld, %ld, %ld)\n", this, pcmDevice, dev, left, right);
+	logMsg("VoodooHDADevice[%p]::audioCtlOssMixerSet(%p, %u, %u, %u)\n", this, pcmDevice, (unsigned)dev, (unsigned)left, (unsigned)right);
 
 	// Save new values. 
 	pcmDevice->left[dev] = left;
@@ -2332,7 +2479,7 @@ UInt32 VoodooHDADevice::audioCtlOssMixerSetRecSrc(PcmDevice *pcmDevice, UInt32 s
 	Channel *channel;
 	UInt32 ret = 0xffffffff;
 
-//		logMsg("VoodooHDADevice[%p]::audioCtlOssMixerSetRecSrc(%p, 0x%lx)\n", this, pcmDevice, src);
+		logMsg("VoodooHDADevice[%p]::audioCtlOssMixerSetRecSrc(%p, 0x%lx)\n", this, pcmDevice, src);
 
 	LOCK();
 
@@ -2398,7 +2545,7 @@ int VoodooHDADevice::audioCtlOssMixerGet(PcmDevice *pcmDevice, UInt32 dev, UInt3
 
 void VoodooHDADevice::mixerSetDefaults(PcmDevice *pcmDevice)
 {
-	//IOLog("VoodooHDADevice::mixerSetDefaults\n");
+	logMsg("VoodooHDADevice::mixerSetDefaults\n");
 	for (int n = 0; n < SOUND_MIXER_NRDEVICES; n++) {
 		uint32_t def = mMixerDefaults[n];
 		if (def > 100)
@@ -2456,8 +2603,8 @@ Channel *VoodooHDADevice::channelInit(PcmDevice *pcmDevice, int direction)
 		return NULL;
 	}
 
-//	logMsg("block size: %ld, block count: %ld, buffer size: %ld\n", channel->blockSize, channel->numBlocks,
-//			pcmDevice->chanSize);
+	logMsg("block size: %ld, block count: %ld, buffer size: %ld\n", channel->blockSize, channel->numBlocks,
+			pcmDevice->chanSize);
 
 	channel->buffer = allocateDmaMemory(pcmDevice->chanSize, "buffer");
 	if (!channel->buffer) {
@@ -3072,7 +3219,7 @@ int VoodooHDADevice::pcmAttach(PcmDevice *pcmDevice)
 	//logMsg("VoodooHDADevice::mixerSetDefaults mid\n");
 	mixerSetDefaults(pcmDevice);
 	LOCK(); // xxx
-	//logMsg("VoodooHDADevice::mixerSetDefaults end\n");
+	logMsg("VoodooHDADevice::mixerSetDefaults end\n");
 
 	dumpMsg("Registering PCM channels...\n");
 	if (pcmDevice->playChanId >= 0)
@@ -3088,7 +3235,7 @@ int VoodooHDADevice::pcmAttach(PcmDevice *pcmDevice)
 void VoodooHDADevice::createPrefPanelMemoryBuf(FunctionGroup *funcGroup)
 {
 
-	//logMsg("VoodooHDADevice::createPrefPanelMemoryBuf\n");
+	logMsg("VoodooHDADevice::createPrefPanelMemoryBuf\n");
 
 	createPrefPanelStruct(funcGroup);
 
@@ -3131,7 +3278,7 @@ void VoodooHDADevice::createPrefPanelMemoryBuf(FunctionGroup *funcGroup)
 //Создаем структуру в которой запомним какие объекты AudioControl каким регуляторам на панели PrefPanel соотвествуют
 void VoodooHDADevice::createPrefPanelStruct(FunctionGroup *funcGroup)
 {
-	//logMsg("createPrefPanelStruct: codec %d have %d assocNum\n", funcGroup->codec->cad, funcGroup->audio.numAssocs);
+	logMsg("createPrefPanelStruct: codec %d have %d assocNum\n", funcGroup->codec->cad, funcGroup->audio.numAssocs);
 	
 	//Перебираем все ассоциации которые были созданы ранее
 	for(int i = 0; i < funcGroup->audio.numAssocs; i++) {
@@ -3199,7 +3346,7 @@ void VoodooHDADevice::createPrefPanelStruct(FunctionGroup *funcGroup)
 void VoodooHDADevice::updatePrefPanelMemoryBuf(void)
 {
 
-	//logMsg("VoodooHDADevice::updatePrefPanelMemoryBuf\n");
+	logMsg("VoodooHDADevice::updatePrefPanelMemoryBuf\n");
 
 	for(int i = 0; i < nSliderTabsCount; i++) {
 
@@ -3218,7 +3365,7 @@ void VoodooHDADevice::updatePrefPanelMemoryBuf(void)
 //Функция меняет значения усиления для регулятора
 void VoodooHDADevice::changeSliderValue(UInt8 tabNum, UInt8 sliderNum, UInt8 newValue)
 {
-	//logMsg("change for Device (%d) ossSlider (%d) value to %d\n", tabNum, sliderNum, newValue);
+	logMsg("change for Device (%d) ossSlider (%d) value to %d\n", tabNum, sliderNum, newValue);
 	if(tabNum < nSliderTabsCount) {
 		PcmDevice* _pcmDevice = sliderTabs[tabNum].pcmDevice;
 		if(_pcmDevice)

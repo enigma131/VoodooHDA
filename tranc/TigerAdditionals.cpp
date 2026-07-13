@@ -12,11 +12,11 @@
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/conf.h>
-#include <sys/msgbuf.h>
-#include <sys/proc_internal.h>
+// #include <sys/msgbuf.h>
+// #include <sys/proc_internal.h>
 #include <sys/ioctl.h>
-#include <sys/tty.h>
-#include <sys/file_internal.h>
+// #include <sys/tty.h>
+// #include <sys/file_internal.h>
 #include <sys/syslog.h>
 #include <stdarg.h>
 #include <sys/malloc.h>
