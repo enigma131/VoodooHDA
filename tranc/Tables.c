@@ -137,6 +137,7 @@ const CodecListItem gCodecList[] = {
 	{ HDA_CODEC_ALC275,			"Realtek ALC275" },
 	{ HDA_CODEC_ALC276,			"Realtek ALC276" },
 	{ HDA_CODEC_ALC282,			"Realtek ALC282" },
+	{ HDA_CODEC_ALC283,			"Realtek ALC283" },
 	{ HDA_CODEC_ALC292,			"Realtek ALC292" },
 	{ HDA_CODEC_ALC293,			"Realtek ALC293" },
   { HDA_CODEC_ALC294,     "Realtek ALC294" },

@@ -5,7 +5,7 @@ I had no audio from Tiger to Lion on the Acer laptop hackintosh, so the idea for
 First commit is without prefpane because, as you know, this can't be made with Xcode 2.5 tools.  
 
 Start point : Forked from https://github.com/CloverHackyColor/VoodooHDA project release 3.1.2  
-Thanks to developpers (slice, chris1111 and original developers)   
+Thanks to developers (slice, chris1111 and original developers)   
 Some parts of code adapation comes from svn archives, example to get release 77  
 svn checkout -r 77 https://svn.code.sf.net/p/voodoohda/code/ voodoohda-code-r77  
 
@@ -21,7 +21,11 @@ Kernel->block : com.apple.driver.AppleHDA
 Kernel->force : com.apple.iokit.IOAudioFamily, /System/Library/Extensions/IOAudioFamily.kext, max kernel 9.9  
 Kernel->force : com.apple.kext.OSvKernDSPLib , /System/Library/Extensions/OSvKernDSPLib.kext, max kernel 9.9  
 Kernel->add   : your compiled VoodooHDA.kext (32 bits or FAT version)  
-
+  
+### Commit 2 :  
+Add my audio device identification (Alc283)  
+  
+  
 Original readme.md :  
 
 ### Compilation.
