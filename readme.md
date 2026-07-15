@@ -25,6 +25,12 @@ Kernel->add   : your compiled VoodooHDA.kext (32 bits or FAT version)
 ### Commit 2 :  
 Add my audio device identification (Alc283)  
   
+### Commit 3 :  
+Add Tiger prefpane project, compiled under Snow Leopard with Xcode 4.2, target OS X 10.4  
+Resize GUI objects for Tiger smaller prefpane window, add modern Icon.  
+Origin SVN r116, add code compatibility  
+Compiled prefpane embedded, copy result in /Library/PreferencePanes/  
+  
   
 Original readme.md :  
 
