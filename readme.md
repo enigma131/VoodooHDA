@@ -31,6 +31,11 @@ Resize GUI objects for Tiger smaller prefpane window, add modern Icon.
 Origin SVN r116, add code compatibility  
 Compiled prefpane embedded, copy result in /Library/PreferencePanes/  
   
+### Commit 4 :  
+Add Leopard prefpane project, compiled under Leopard with Xcode 3.1, target OS X 10.5  
+Origin SVN r76, add code compatibility, add modern Icon.  
+Compiled prefpane embedded, copy result in /Library/PreferencePanes/  
+  
   
 Original readme.md :  
 
