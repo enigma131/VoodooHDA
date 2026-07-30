@@ -10,7 +10,7 @@ Some parts of code adapation comes from svn archives, example to get release 77
 svn checkout -r 77 https://svn.code.sf.net/p/voodoohda/code/ voodoohda-code-r77  
 
 ### Commit 1 :  
-Xcode 2.5 compatibility, targets Tiger + Leopard 32 bits, compiled kext embedded in build folder  
+Xcode 2.5 compatibility, targets Tiger + Leopard 32 bits.  
 Reworked kernel/darwin 8 adaptations and log system for compatibility.  
 Be careful: Compilation with TIGER flag, see in project settings.    
 VoodooHDA.xcodeproj is located in tranc folder like original project.  
@@ -35,6 +35,12 @@ Compiled prefpane embedded, copy result in /Library/PreferencePanes/
 Add Leopard prefpane project, compiled under Leopard with Xcode 3.1, target OS X 10.5  
 Origin SVN r76, add code compatibility, add modern Icon.  
 Compiled prefpane embedded, copy result in /Library/PreferencePanes/  
+  
+### Commit 5 :  
+Preparing release 3.2.0  
+Fat version tested up to Catalina. Sould work above too (up to Sequoia).  
+Starting Big Sur, you need to remove manually AppleHDA.kext, install to S/L/E and rebuild caches  
+Source code for 64 bits version in release point, added with all kexts.  
   
   
 Original readme.md :  
