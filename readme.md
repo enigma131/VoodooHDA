@@ -41,6 +41,10 @@ Preparing release 3.2.0
 Fat version tested up to Catalina. Sould work above too (up to Sequoia).  
 Starting Big Sur, you need to remove manually AppleHDA.kext, install to S/L/E and rebuild caches  
 Source code for 64 bits version in release point, added with all kexts.  
+
+Capture:  
+  
+<img src="images/capture.png" width="800">  
   
   
 Original readme.md :  
