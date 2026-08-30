@@ -14,7 +14,7 @@ Xcode 2.5 compatibility, targets Tiger + Leopard 32 bits.
 Reworked kernel/darwin 8 adaptations and log system for compatibility.  
 Be careful: Compilation with TIGER flag, see in project settings.    
 VoodooHDA.xcodeproj is located in tranc folder like original project.  
-If you need a FAT version, you can combine Tiger 32 bits compilation and Snow Leopard 64 bit compilation (Xcode 4.6 is need) with lipo  
+If you need a FAT version, you can combine Tiger 32 bits compilation and Snow Leopard 64 bit compilation (Xcode 4.2 is need) with lipo  
 
 Using with Opencore:  
 Kernel->block : com.apple.driver.AppleHDA  
